@@ -1,10 +1,7 @@
 #############################################################################
 #									    #
 #CLASS LIBRARY RANLIP FOR MULTIVARIATE NONUNIFORM RANDOM VARIATE GENERATION #
-#	MAPLE version								    #
-#	This makefile gives targets that show how to compile and link       #
-#	user code to the ranlip shared library and statatic library.        #
-#									    #
+#	MAPLE version	, Linux 					    #
 ############################################################################
 
 # compiler
