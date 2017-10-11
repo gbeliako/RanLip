@@ -1,0 +1,108 @@
+#!/bin/sh
+
+#check if intstall directory provided
+if [ $# -eq 1 ]
+then
+	INSTALL_DIR=$1
+	DOCS_DIR=$INSTALL_DIR
+		
+elif [ $# -eq 0 ]	
+then
+	INSTALL_DIR="/usr/local"
+	DOCS_DIR="/usr/local/share/doc/ranlip.1.0"
+	
+else
+	echo "..."
+fi
+
+DEFAULT_DIR="/usr/local"
+
+#run configure script is it exist with install directory as parameter
+if [ -f configure ]
+then 
+	./configure --prefix=$INSTALL_DIR
+
+else 
+	echo "Configure script missing!"
+
+	if [ -d $INSTALL_DIR ]
+	then
+		echo "directory already exist!"
+	else
+		mkdir $INSTALL_DIR
+	fi
+fi
+
+#copydocumentation into the directory docs directory
+if [ -d ./examples -a -d ./docs ]
+then
+	echo "Installing documentation ..."
+	
+	# Check to see if apropritate directories exist if not
+	# create them and copy docs to aproprite dirs.
+	if  [ ! -d $INSTALL_DIR ]
+	then
+		mkdir $INSTALL_DIR
+	fi
+
+	if [ "$DEFAULT_DIR" != "$INSTALL_DIR" ]
+	then
+		if [ -d $INSTALL_DIR/examples -a -d $INSTALL_DIR/DOCS ]
+		then
+			echo "..."
+		else
+			mkdir $INSTALL_DIR/examples
+			mkdir $INSTALL_DIR/docs
+		fi
+		
+		#copy docuemnts in to appropriate directories
+		echo " cp -r ./EXAMPLES $INSTALL_DIR/EXAMPLES "
+		cp -r ./examples/* $INSTALL_DIR/examples/
+
+		echo " cp -r ./DOCS $INSTALL_DIR/DOCS "
+		cp -r ./docs/* $INSTALL_DIR/docs/
+
+		#save documents directory path for later unistall		
+		echo $INSTALL_DIR > docs_dir
+		
+	else
+		if [ ! -d $INSTALL_DIR/share ]
+		then
+			mkdir $INSTALL_DIR/share/
+		fi
+		
+		if [ ! -d $INSTALL_DIR/share/doc ]
+		then
+			mkdir $INSTALL_DIR/share/doc
+		fi
+		
+		if [ ! -d $DOCS_DIR ]
+		then
+			mkdir $DOCS_DIR
+			mkdir $DOCS_DIR/examples
+			mkdir $DOCS_DIR/docs
+		fi
+
+		#copy docuemnts in to appropriate directories
+		echo " cp -r ./EXAMPLES $DOCS_DIR/EXAMPLES "
+		cp -r ./examples/* $DOCS_DIR/examples/
+
+		echo " cp -r ./DOCS $DOCS_DIR/DOCS "
+		cp -r ./docs/* $DOCS_DIR/docs
+		
+		#save documents directory path for later unistall
+		echo $DOCS_DIR/ > docs_dir
+	fi
+
+else
+	echo "documentation not found!"	
+
+fi
+
+#run make file target make isntall to compile and install the library
+if [ -f Makefile ]
+then
+	make install
+fi
+
+

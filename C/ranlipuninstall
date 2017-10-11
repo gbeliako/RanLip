@@ -1,0 +1,16 @@
+#!/bin/sh
+
+#run make uninstall and then clean
+if [ -f Makefile ]
+then 	echo "Uninstalling liblip"
+	make uninstall
+	make clean
+else	echo "makefile not found... might have to uninstall manually!"
+fi
+
+# remove the document directory.
+
+DOCS_DIR=`cat docs_dir`
+
+echo "rm -rf $DOCS_DIR"
+rm -rf $DOCS_DIR

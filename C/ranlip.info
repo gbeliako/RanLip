@@ -1,0 +1,445 @@
+This is ranlip.info, produced by makeinfo version 4.5 from
+ranlip.texinfo.
+
+   =insert 		    GNU GENERAL PUBLIC LICENSE 		       Version 2,
+June 1991
+
+   Copyright (C) 1989, 1991 Free Software Foundation, Inc. 59 Temple
+Place, Suite 330, Boston, MA  02111-1307  USA. Everyone is permitted to
+copy and distribute verbatim copies of this license document, but
+changing it is not allowed.
+
+
+
+File: ranlip.info,  Node: Top,  Next: Introduction,  Up: (dir)
+
+Class Library ranlip for Multivariate Non-uniform Random Variate Generation
+***************************************************************************
+
+   This manual describes generation of non-uniform random variates from
+Lipschitz-continuous densities using acceptance/ rejection, and the
+class library *ranlip* which implements this method. It is assumed that
+the required distribution has Lipschitz-continuous density, which is
+either given analytically or as a black box. The algorithm builds a
+piecewise constant upper approximation to the density (the hat
+function), using a large number of its values and subdivision of the
+domain into hyper rectangles.
+
+   The class library *ranlip* provides very competitive preprocessing
+and generation times, and yields  small rejection constant, which is a
+measure of efficiency of the generation step. It exhibits good
+performance for up to five variables, and provides the user with a
+black box non-uniform random variate generator for a large class of
+distributions, in particular, multimodal distributions.
+
+		    GNU GENERAL PUBLIC LICENSE 		       Version 2,
+June 1991
+
+   Copyright (C) 1989, 1991 Free Software Foundation, Inc. 59 Temple
+Place, Suite 330, Boston, MA  02111-1307  USA. Everyone is permitted to
+copy and distribute verbatim copies of this license document, but
+changing it is not allowed.
+   The menu below lists the major sections which give a brief
+background, overview of the library and illustrative examples on how to
+use it.
+
+* Menu:
+
+* Introduction::     				Overview of software.
+* Description of Library:: 			Library interface methods.
+* Examples::					Library in action.
+* Performance::					Computational complexity and performance of the algorithms.
+* Index::            				Complete index.
+
+
+File: ranlip.info,  Node: Introduction,  Next: Description of Library,  Prev: Top,  Up: Top
+
+Introduction
+************
+
+   This manual describes the programming library *ranlip*, which
+implements the method of acceptance/ rejection in the multivariate
+case, for Lipschitz continuous  densities. It assumes that the
+Lipschitz constant of the density rho is known, or can be approximated,
+and that computation of the values of rho at distinct points is not
+expensive. The method builds a piecewise constant hat function, by
+subdividing the domain into hyper rectangles, and by using a large
+number of values of rho. Lipschitz properties of rhoallow one to
+overestimate rho at all other points, and thus to overestimate the
+absolute maxima of rho on the elements of the partition.
+
+   The class library *ranlip* implements computation of the hat
+function and generation of random variates, and makes this process
+transparent to the user. The user needs to provide a method of
+evaluation of rho at a given point, and the number of elements in the
+subdivision of the domain, which is the  parameter characterizing the
+quality of the hat function and the number of computations at the
+preprocessing step.
+
+   The class of Lipschitz-continuous densities is very broad, and
+includes many multimodal densities, which are hard to deal with. No
+other properties beyond Lipschitz continuity are required, and the
+Lipschitz constant, if not provided, can be estimated automatically.
+The algorithm does not require rho to be given analytically, to be
+differentiable, or to be normalized.
+
+
+File: ranlip.info,  Node: Description of Library,  Next: Examples,  Prev: Introduction,  Up: Top
+
+Description of Library
+**********************
+
+   The main class which provides the interface to the preprocessing and
+computation is called `CRanLip'. It is illustrated in the following
+sections, together with amore extensive description of the interface.
+Can be viewed via the following menu:
+
+* Menu:
+
+* Class CRanLip::		interface of class CRanLip, inheriting from CRanLip
+* Closer Look at Interface::	more detailed view of the interface.
+
+
+File: ranlip.info,  Node: Class CRanLip,  Next: Closer Look at Interface,  Up: Description of Library
+
+Class CRanLip
+=============
+
+   The main class which provides the interface to the preprocessing and
+random variate generation is called CRanLip. This is an abstract class,
+from which the user must derive his own class which overrides the
+method for rho(x), and declare an instance of that class. The interface
+of Class CRandLip is illustrated bellow followed by an example of how
+to inherit from CRanLip.
+
+     class CRanLip  {
+     public:
+     // initialises the tables and arrays for the generator
+     // should be the first method to call
+         void Init(int dim, double* left, double* right);
+     
+     // sets the pointer to the uniform random number generator.
+     // The default is ranlux generator
+         void SetUniformGenerator(UFunction gen);
+     
+     // sets the seed for the uniform random number generator
+         void Seed(int seed);
+     
+     // computes the hat function given the Lipschitz constant
+     // num and numfine determine the rough and fine partitions
+         void PrepareHatFunction(int num, int numfine, double Lip);
+     
+     // computes the hat function, and automatically computes
+     // the Lipschitz constant
+         void PrepareHatFunctionAuto(int num, int numfine, double minLip);
+     
+     // generates a random variate with the required density
+         void RandomVec(double* p);
+     
+     // frees the memory occupied by the partition and various tables
+          void FreeMem();
+     ...
+     }
+
+   The example bellow illustrates how the user needs to inherit from
+CRanLip.
+
+     // declare a derived class MyRnumGen, with one method to override
+     class MyRnumGen:public CRanLip {
+     	 public: virtual double	Distribution(double* p) ;
+     };
+     
+     double	MyRnumGen::Distribution(double* p)
+     { // example: multivriate normal distribution
+        double r;
+        for(int j=0;j<Dimension;j++) {
+           r+=p[j]*p[j];
+        }
+        return exp(-r);;
+     }
+     // declare an instance of this class
+     MyRnumGen MyGen;
+
+
+File: ranlip.info,  Node: Closer Look at Interface,  Prev: Class CRanLip,  Up: Description of Library
+
+Closer Look at Interface
+========================
+
+Init(int dim, double* left, double* right)
+------------------------------------------
+
+   Initialises the internal variables of this class. dim is the
+dimension, left and right are arrays of size dim which determine the
+domain of rho: left_i <= x_i <= right_i. *Init must be called only once
+before any other method.*
+
+SetUniformGenerator(UFunction gen)
+----------------------------------
+
+   Sets a pointer to the uniform random number generator on (0,1). The
+default is M. Luescher's ranlux generator, but the user can override it
+and use his own preferred generator.
+
+Seed(int seed)
+--------------
+
+   Sets the seed of the default uniform random number generator ranlux.
+If the user has supplied his own generator in SetUniformGenerator, that
+generator's seed() function should be called instead.
+
+PrepareHatFunction(int num, int numfine, double Lip)
+----------------------------------------------------
+
+   Builds the hat function, using the Lipschitz constant supplied in
+Lip. Parameters num and numfine determine the rough and fine
+partitions. num is the number of subdivisions in each variable to
+partition the domain D into hyper rectangles D_k. On each D_k, the hat
+function will have a constant value h_k. numfine(>1) is the number of
+subdivisions in the finer partition in each variable. Each set D_k is
+subdivided into (numfine-1)^dim smaller hyper rectangles, in order to
+improve the quality of the overestimate h_k. There will be in total
+(num*numfine)^dim evaluations of rho (calls to Distribution()). numfine
+should be a power of 2 for numerical efficiency reasons (if not, it
+will be automatically changed to a power of 2 larger than the supplied
+value). numfine can be 2, in which case the fine partition is not used.
+
+PrepareHatFunctionAuto(int num, int numfine, double minLip=0)
+-------------------------------------------------------------
+
+   Builds the hat function and automatically computes an estimate to
+the Lipschitz constant.  Parameters num and numfine determine the rough
+and fine partitions, and are described in PrepareHatFunction() method.
+minLip denotes the lower bound on the value of the computed Lipschitz
+constant, the default value is 0.
+
+RandomVec(double* p)
+--------------------
+
+   Generates a random variate with the density rho. Should be called
+after PrepareHatFunction() or PrepareHatFunctionAuto(). The parameter p
+is an array of size dim, it will contain the components of the computed
+random vector.
+
+FreeMemory()
+------------
+
+   Frees the memory occupied by the data structures, which can be very
+large. It destroys the hat function, and RandomVec() method cannot be
+called after FreeMemory(). Automatically called from the destructor.
+This method is useful to deallocate memory while the object CRanLip
+still exists.
+
+
+File: ranlip.info,  Node: Examples,  Next: Performance,  Prev: Description of Library,  Up: Top
+
+Exemples
+********
+
+   There are several examples of the usage of *ranlip* provided in the
+distribution. There are three basic steps: to supply the required
+distribution, to build the hat function, and to generate random
+variates. As illustrated in following examples.
+
+* Menu:
+
+* Common Use Example::	Common usage.
+* Another Example::	Common usage.
+* Procedural Example::	Uses C syntax.
+
+
+File: ranlip.info,  Node: Common Use Example,  Next: Another Example,  Up: Examples
+
+Common Use Example
+==================
+
+     #include "ranlip.h"
+     #define dim 4             // the dimension
+     // declare a derived class MyRnumGen, with one method to override
+     class MyRnumGen:public CRanLip {
+     	 public: virtual double	Distribution(double* p) ;
+     };
+     double	MyRnumGen::Distribution(double* p)
+     { // example: multivriate normal distribution
+        double r=0.0;
+        for(int j=0;j<Dimension;j++)  r+=p[j]*p[j];
+        return exp(-r);
+     }
+     void main(int argc, char *argv[]){
+        double LipConst = 4.0;
+        MyRnumGen MyGen;
+        double left[dim], right[dim], p[dim];
+        int i;
+     // set the domain to be the unit hypercube
+        for(i=0;i<dim;i++) {left[i]=0; right[i]=1;}
+     
+        MyGen.Init(dim,left,right);
+        MyGen.PrepareHatFunction(10,8,LipConst);
+        MyGen.Seed(10);
+        for(i=0;i<1000;i++) {
+           MyGen.RandomVec(p);
+        // do something with p
+        }
+        MyGen.FreeMemory();
+     // now MyGen can be reused
+        MyGen.Init(dim,left,right);
+        MyGen.PrepareHatFunctionAuto(10,32);
+        for(i=0;i<1000;i++) {
+           MyGen.RandomVec(p);
+        }
+     }
+
+
+File: ranlip.info,  Node: Another Example,  Next: Procedural Example,  Prev: Common Use Example,  Up: Examples
+
+Another Example
+===============
+
+     // Example 2
+     #include "ranlip.h"
+     #define dim 3             // the dimension
+     // declare a derived class MyRnumGen, with one method to override
+     class MyRnumGen:public CRanLip {
+     	 public: virtual double	Distribution(double* p) ;
+     };
+     double	MyRnumGen::Distribution(double* p)
+     { // example: multivriate normal distribution
+        double r=0.0;
+        for(int j=0;j<Dimension;j++)  r+=p[j]*p[j];
+        return exp(-r);
+     }
+     void main(int argc, char *argv[]){
+        double LipConst;
+        MyRnumGen MyGen;
+        double left[dim], right[dim], p[dim];
+        int i;
+     // set the domain to be a hypercube
+        for(i=0;i<dim;i++) {left[i]=-2; right[i]=2;}
+        MyGen.Init(dim,left,right);
+        MyGen.PrepareHatFunctionAuto(10,32,0.01);
+        MyGen.Seed(10);
+     
+        for(i=0;i<1000;i++) {
+           MyGen.RandomVec(p);
+        // do something with p
+        }
+        cout<<"acceptance ratio is "<<1000.0/ MyGen.count_total<<endl;
+        LipConst=MyGen.Lipschitz; // computed Lipschitz constant
+        if(MyGen.count_error>0) { // Lipschitz constant was too low
+           LipConst*=2;
+           MyGen.PrepareHatFunction(10,32,LipConst);
+        }
+        for(i=0;i<1000;i++) {
+           MyGen.RandomVec(p);
+        // do something with p
+        }
+     }
+
+
+File: ranlip.info,  Node: Procedural Example,  Prev: Another Example,  Up: Examples
+
+Procedural Example
+==================
+
+     // Example 3  using procedural interface
+     #include "ranlipproc.h"
+     #define Dim 3             // the dimension
+     // implement calculation of the density in MyDist function
+     double MyDist(double* p, int dim)
+     { // example: multivariate normal distribution
+        double r=0.0;
+        for(int j=0;j<dim;j++)  r+=p[j]*p[j];
+        return exp(-r);
+     }
+     double MyRand() // use my own random number generator
+     { return  (double)rand()/(RAND_MAX+0.001); } //random numbers in [0,1)
+     
+     void main(int argc, char *argv[]){
+        double LipConst; int i;
+        double left[Dim], right[Dim], p[Dim];
+     // set the domain to be a hypercube
+        for(i=0;i<Dim;i++) {left[i]=-2; right[i]=2;}
+     
+        InitRanLip(Dim,a,b);
+     // pass the address of the density function (required)
+        SetDistFunctionRanLip(&MyDist);
+     // pass the address of my generator (optional)
+        SetUniformGeneratorRanLip(&MyRand);
+        srand(10); // use srand, not SeedRanLip
+     
+        PrepareHatFunctionAutoRanLip(10,8);
+        for(i=0;i<1000;i++) {
+           RandomVecRanLip(p);
+        // do something with p
+        }
+        cout<<"acceptance ratio is "<<1000.0/ Count_totalRanLip() <<endl;
+        LipConst=LipschitzRanLip(); // computed Lipschitz constant
+        if(Count_errorRanLip()>0) { // Lipschitz constant was too low
+           LipConst*=2;
+           PrepareHatFunctionRanLip(10,32,LipConst);
+        }
+        for(i=0;i<1000;i++)
+           RandomVecRanLip(p);
+     }
+
+
+File: ranlip.info,  Node: Performance,  Next: Index,  Prev: Examples,  Up: Top
+
+Performance
+***********
+
+   It is important to estimate the computing time and memory
+requirements when using *ranlip*, especially for the case of several
+variables. The quality of the hat function directly depends on the
+number of values of rho(x) used for its computation. The higher this
+number is, the longer is preprocessing step (building the hat
+function), but the more efficient is the generation step (less rejected
+variates). A good estimate of the Lipschitz constant is also important,
+as it improves  the quality of the hat function.
+
+   The method PrepareHatFunction(num, numfine, LipConst) uses the first
+two parameters to establish the rough partition of the domain, sets
+D_k, on which  the hat function will have a constant value h_k, and the
+fine partition, used to compute this value. In total, (num*numfine)^dim
+evaluations of rho will be performed. The memory required by the
+algorihm is numfine^dim + 2*num^dim values of type double (8 bytes
+each).
+
+   For numerical efficiency, the second parameter numfine should be a
+power of 2. This facilitates computation of the neighbours  in an
+n-dimensional mesh by using binary arithmetic.
+
+
+File: ranlip.info,  Node: Index,  Prev: Performance,  Up: Top
+
+Index
+*****
+
+* Menu:
+
+* chapter, Computational complexity and performance: Performance.
+* chapter, exemples:                     Examples.
+* chapter, Introduction:                 Introduction.
+* chapter, ranlip Description:           Description of Library.
+* Examples, Another Example:             Another Example.
+* Examples, Common Use Example:          Common Use Example.
+* Examples, Procedural Example:          Procedural Example.
+* section, interface of class CRanLip:   Class CRanLip.
+* section, RanLip library Interface:     Closer Look at Interface.
+
+
+
+Tag Table:
+Node: Top388
+Node: Introduction2228
+Node: Description of Library3805
+Node: Class CRanLip4348
+Node: Closer Look at Interface6457
+Node: Examples9384
+Node: Common Use Example9871
+Node: Another Example11140
+Node: Procedural Example12618
+Node: Performance14270
+Node: Index15507
+
+End Tag Table
